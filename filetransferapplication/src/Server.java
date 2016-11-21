@@ -1,17 +1,15 @@
-package filetransferapplication;
-
 import java.io.*;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.nio.ByteBuffer;
 
-public class FileServer {
-
+public class Server {
     private DatagramSocket socket = null;
-    private FileHandler fileHandle = null;
+    private FileEvent fileEvent = null;
 
-    public FileServer() {
+    public Server() {
 
     }
 
@@ -20,30 +18,31 @@ public class FileServer {
             socket = new DatagramSocket(9876);
             byte[] incomingData = new byte[1024 * 1000 * 50];
             while (true) {
-                //receive the file
                 DatagramPacket incomingPacket = new DatagramPacket(incomingData, incomingData.length);
                 socket.receive(incomingPacket);
                 byte[] data = incomingPacket.getData();
                 
-                //Write data to a local file
+                ByteBuffer wrapped = ByteBuffer.wrap(data); // big-endian by default
+                int num = wrapped.getInt(); // 1
+                System.out.println(num);
+
                 ByteArrayInputStream in = new ByteArrayInputStream(data);
                 ObjectInputStream is = new ObjectInputStream(in);
-                fileHandle = (FileHandler) is.readObject();
-                if (fileHandle.getStatus().equalsIgnoreCase("Error")) {
+                fileEvent = (FileEvent) is.readObject();
+                if (fileEvent.getStatus().equalsIgnoreCase("Error")) {
                     System.out.println("Some issue happened while packing the data @ client side");
                     System.exit(0);
                 }
                 createAndWriteFile(); // writing the file to hard disk
-                
-                //send confirmation
                 InetAddress IPAddress = incomingPacket.getAddress();
                 int port = incomingPacket.getPort();
-                String reply = "Got the file";
+                String reply = "Thank you for the message";
                 byte[] replyBytea = reply.getBytes();
-                DatagramPacket replyPacket
-                        = new DatagramPacket(replyBytea, replyBytea.length, IPAddress, port);
+                DatagramPacket replyPacket =
+                        new DatagramPacket(replyBytea, replyBytea.length, IPAddress, port);
                 socket.send(replyPacket);
-                
+                Thread.sleep(3000);
+                System.exit(0);
 
             }
 
@@ -53,25 +52,35 @@ public class FileServer {
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
     public void createAndWriteFile() {
-        String outputFile = fileHandle.getDestinationDirectory() + fileHandle.getFilename();
-        if (!new File(fileHandle.getDestinationDirectory()).exists()) {
-            new File(fileHandle.getDestinationDirectory()).mkdirs();
+        String outputFile = fileEvent.getDestinationDirectory() + fileEvent.getFilename();
+        if (!new File(fileEvent.getDestinationDirectory()).exists()) {
+            new File(fileEvent.getDestinationDirectory()).mkdirs();
         }
         File dstFile = new File(outputFile);
         FileOutputStream fileOutputStream = null;
-        
-            //save the file
-            
-            
-            
-            
-            
+        try {
+            fileOutputStream = new FileOutputStream(dstFile);
+            fileOutputStream.write(fileEvent.getFileData());
+            fileOutputStream.flush();
+            fileOutputStream.close();
+            System.out.println("Output file : " + outputFile + " is successfully saved ");
 
-        
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
+    }
+
+    public static void main(String[] args) {
+        Server server = new Server();
+        server.createAndListenSocket();
     }
 }

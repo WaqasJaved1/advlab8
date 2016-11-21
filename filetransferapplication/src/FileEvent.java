@@ -1,17 +1,9 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-package filetransferapplication;
-
 import java.io.Serializable;
 
-/**
- *
- * @author Fahad
- */
-public class FileHandler implements Serializable {
+public class FileEvent implements Serializable {
+
+    public FileEvent() {
+    }
 
     private static final long serialVersionUID = 1L;
 
@@ -69,5 +61,4 @@ public class FileHandler implements Serializable {
     public void setFileData(byte[] fileData) {
         this.fileData = fileData;
     }
-
 }
